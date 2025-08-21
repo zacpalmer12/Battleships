@@ -6,54 +6,83 @@ public class Main {
     static final int N = 10;
     static final char WATER = '~', SHIP = 'O';
 
+    static String[] shipNames = {
+            "Aircraft Carrier", "Battleship", "Submarine", "Cruiser", "Destroyer"
+    };
+    static int[] shipSizes = {5, 4, 3, 3, 2};
+
     public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
         char[][] field = new char[N][N];
         for (char[] row : field) Arrays.fill(row, WATER);
 
         printField(field);
 
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter the coordinates of the ship:");
-        String a = sc.next(), b = sc.next();
-        int[] p1 = parse(a), p2 = parse(b);
+        // Place all 5 ships
+        for (int i = 0; i < shipNames.length; i++) {
+            while (true) {
+                System.out.printf("Enter the coordinates of the %s (%d cells):%n",
+                        shipNames[i], shipSizes[i]);
+                String a = sc.next(), b = sc.next();
+                int[] p1 = parse(a), p2 = parse(b);
+                if (p1 == null || p2 == null) {
+                    System.out.println("Error! Wrong coordinates! Try again:");
+                    continue;
+                }
 
-        if (p1 == null || p2 == null) {
-            System.out.println("Error!");
-            return;
+                int r1 = p1[0], c1 = p1[1], r2 = p2[0], c2 = p2[1];
+                if (r1 != r2 && c1 != c2) {
+                    System.out.println("Error! Wrong ship location! Try again:");
+                    continue;
+                }
+
+                // Normalize
+                int rMin = Math.min(r1, r2), rMax = Math.max(r1, r2);
+                int cMin = Math.min(c1, c2), cMax = Math.max(c1, c2);
+                int length = (r1 == r2) ? (cMax - cMin + 1) : (rMax - rMin + 1);
+
+                if (length != shipSizes[i]) {
+                    System.out.printf("Error! Wrong length of the %s! Try again:%n", shipNames[i]);
+                    continue;
+                }
+
+                // Check proximity
+                if (!canPlace(field, rMin, rMax, cMin, cMax)) {
+                    System.out.println("Error! You placed it too close to another one. Try again:");
+                    continue;
+                }
+
+                // Place ship
+                if (r1 == r2) {
+                    for (int c = cMin; c <= cMax; c++) field[r1][c] = SHIP;
+                } else {
+                    for (int r = rMin; r <= rMax; r++) field[r][c1] = SHIP;
+                }
+
+                printField(field);
+                break; // placed successfully
+            }
         }
-        int r1 = p1[0], c1 = p1[1], r2 = p2[0], c2 = p2[1];
-
-        // same row or same column only
-        if (r1 != r2 && c1 != c2) {
-            System.out.println("Error");
-            return;
-        }
-
-        // normalize order (min..max)
-        int rMin = Math.min(r1, r2), rMax = Math.max(r1, r2);
-        int cMin = Math.min(c1, c2), cMax = Math.max(c1, c2);
-
-        // place ship
-        if (r1 == r2) {
-            for (int c = cMin; c <= cMax; c++) field[r1][c] = SHIP;
-        } else {
-            for (int r = rMin; r <= rMax; r++) field[r][c1] = SHIP;
-        }
-
-        // print updated field
-        printField(field);
-
-        // report length and parts
-        List<String> parts = new ArrayList<>();
-        if (r1 == r2) {
-            for (int c = cMin; c <= cMax; c++) parts.add(fmt(r1, c));
-        } else {
-            for (int r = rMin; r <= rMax; r++) parts.add(fmt(r, c1));
-        }
-        System.out.println("Length: " + parts.size() + "  Parts: " + String.join(" ", parts));
     }
 
-    // Parse like "A1", "J10" → [row, col] (0-based). Returns null if invalid.
+    // checks adjacency + overlap
+    static boolean canPlace(char[][] f, int rMin, int rMax, int cMin, int cMax) {
+        for (int r = rMin; r <= rMax; r++) {
+            for (int c = cMin; c <= cMax; c++) {
+                for (int dr = -1; dr <= 1; dr++) {
+                    for (int dc = -1; dc <= 1; dc++) {
+                        int nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < N && nc >= 0 && nc < N) {
+                            if (f[nr][nc] == SHIP) return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    // parse "A1" -> [row,col]
     static int[] parse(String s) {
         s = s.trim().toUpperCase();
         if (s.length() < 2) return null;
@@ -65,8 +94,6 @@ public class Main {
         if (col < 1 || col > 10) return null;
         return new int[]{rowCh - 'A', col - 1};
     }
-
-    static String fmt(int r, int c) { return "" + (char)('A' + r) + (c + 1); }
 
     static void printField(char[][] f) {
         System.out.print("  ");
