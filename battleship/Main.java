@@ -14,11 +14,13 @@ public class Main {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         char[][] field = new char[N][N];
+        char[][] fog = new char[N][N];
         for (char[] row : field) Arrays.fill(row, WATER);
+        for (char[] row : fog) Arrays.fill(row, WATER);
 
         printField(field);
 
-        // Place all 5 ships
+        // Place all ships
         for (int i = 0; i < shipNames.length; i++) {
             while (true) {
                 System.out.printf("Enter the coordinates of the %s (%d cells):%n",
@@ -36,7 +38,6 @@ public class Main {
                     continue;
                 }
 
-                // Normalize
                 int rMin = Math.min(r1, r2), rMax = Math.max(r1, r2);
                 int cMin = Math.min(c1, c2), cMax = Math.max(c1, c2);
                 int length = (r1 == r2) ? (cMax - cMin + 1) : (rMax - rMin + 1);
@@ -46,13 +47,11 @@ public class Main {
                     continue;
                 }
 
-                // Check proximity
                 if (!canPlace(field, rMin, rMax, cMin, cMax)) {
                     System.out.println("Error! You placed it too close to another one. Try again:");
                     continue;
                 }
 
-                // Place ship
                 if (r1 == r2) {
                     for (int c = cMin; c <= cMax; c++) field[r1][c] = SHIP;
                 } else {
@@ -60,12 +59,48 @@ public class Main {
                 }
 
                 printField(field);
-                break; // placed successfully
+                break;
             }
         }
+
+        System.out.println("The game starts!");
+        printField(fog); // show fog at start
+
+        // Shooting stage
+        while (true) {
+            System.out.println("Take a shot!");
+            String shot = sc.next();
+            int[] p = parse(shot);
+
+            if (p == null) {
+                System.out.println("Error! You entered wrong coordinates! Try again:");
+                continue;
+            }
+
+            int r = p[0], c = p[1];
+            if (field[r][c] == SHIP) {
+                field[r][c] = 'X';
+                fog[r][c] = 'X';
+                printField(fog);
+                System.out.println("You hit a ship!");
+                printField(field);
+            } else if (field[r][c] == WATER) {
+                field[r][c] = 'M';
+                fog[r][c] = 'M';
+                printField(fog);
+                System.out.println("You missed!");
+                printField(field);
+            } else {
+                printField(fog);
+                System.out.println("You missed!");
+                printField(field);
+            }
+            break; // stop after one shot
+        }
+
+        sc.close();
     }
 
-    // checks adjacency + overlap
     static boolean canPlace(char[][] f, int rMin, int rMax, int cMin, int cMax) {
         for (int r = rMin; r <= rMax; r++) {
             for (int c = cMin; c <= cMax; c++) {
@@ -82,7 +117,6 @@ public class Main {
         return true;
     }
 
-    // parse "A1" -> [row,col]
     static int[] parse(String s) {
         s = s.trim().toUpperCase();
         if (s.length() < 2) return null;
